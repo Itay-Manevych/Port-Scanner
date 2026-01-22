@@ -1,4 +1,5 @@
 #include "PortScanner.h"
+#include "ThreadPool.h"
 #include <iostream>
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -30,14 +31,29 @@ void PortScanner::SetAddress(const std::string& address)
 	this->address = address;
 }
 
-void PortScanner::Scan()
+std::vector<uint16_t> PortScanner::Scan()
 {
     InitWsa();
+    ThreadPool pool(MAX_THREADS);
+    std::mutex results_mutex;
+    std::vector<uint16_t> results;
 
-    for (int i = 7990; i < 9250; i++) {
-        if (CanConnect(i)) {
-            std::cout << address << ":" << i << "Is Open!" << std::endl;
-        }
+    for (uint16_t start = 1; start <= MAX_PORTS; start += CHUNK) {
+        uint16_t end = (std::min)(start + CHUNK - 1, MAX_PORTS);
+
+        pool.Enqueue([&start, &end, &results_mutex, &results, this] {
+            std::vector<uint16_t> local_results;
+
+            for (uint16_t i = start; i < end; i++) {
+                if (CanConnect(i)) {
+                    local_results.push_back(i);
+                }
+            }
+
+            std::unique_lock<std::mutex> lock(results_mutex);
+            results.insert(results.end(), local_results.begin(), local_results.end());
+            lock.unlock();
+        });
     }
 }
 
