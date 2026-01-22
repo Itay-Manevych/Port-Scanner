@@ -1,5 +1,6 @@
 #include "PortScanner.h"
 #include <iostream>
+#pragma comment(lib, "Ws2_32.lib")
 
 namespace {
     struct WsaSession {
@@ -29,18 +30,25 @@ void PortScanner::SetAddress(const std::string& address)
 	this->address = address;
 }
 
-int PortScanner::Scan()
+void PortScanner::Scan()
 {
     InitWsa();
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock == INVALID_SOCKET) {
-        std::cout << "Socket creation failed, Error: " << WSAGetLastError() << std::endl;
-        return 1;
+
+    for (int i = 7990; i < 9250; i++) {
+        if (CanConnect(i)) {
+            std::cout << address << ":" << i << "Is Open!" << std::endl;
+        }
     }
 }
 
-bool PortScanner::CanConnect(SOCKET sock, uint16_t port)
+bool PortScanner::CanConnect(uint16_t port) 
 {
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock == INVALID_SOCKET) {
+        std::cout << "Socket number " << port << " creation failed, Error: " << WSAGetLastError() << std::endl;
+        return false;
+    }
+
     sockaddr_in addr {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -48,11 +56,18 @@ bool PortScanner::CanConnect(SOCKET sock, uint16_t port)
     // convert string address to bytes
     int result = inet_pton(AF_INET, address.c_str(), &addr.sin_addr);
     if (result != 1) {
-        std::cout << "inet_pton failed!, Result: " << result << " Error: " << WSAGetLastError() << std::endl;
+        std::cout << "inet_pton failed!, Result: " << result 
+        << " Error: " << WSAGetLastError() << std::endl;
+
+        closesocket(sock);
         return false;
     }
 
     if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == INVALID_SOCKET) {
-        std::cout << "Connection to " << address << ":" << port << "failed! Error: " << WSAGetLastError() << std::endl;
+        closesocket(sock);
+        return false;
     }
+
+    closesocket(sock);
+    return true;
 }
