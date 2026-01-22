@@ -12,4 +12,6 @@ class PortScanner {
 
 	private:
 		std::string address;
+
+		bool CanConnect(SOCKET sock, uint16_t port);
 };
