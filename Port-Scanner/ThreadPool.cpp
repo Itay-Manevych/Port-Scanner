@@ -13,7 +13,7 @@ ThreadPool::ThreadPool(size_t num_threads)
 
 				std::unique_lock<std::mutex> lock(tasks_mutex);
 
-				condition_variable.wait(lock, [this] { // avoid busy waiting!
+				tasks_condition_variable.wait(lock, [this] { // avoid busy waiting!
 					return stop || !tasks.empty(); // wake condition
 				});
 
@@ -24,9 +24,19 @@ ThreadPool::ThreadPool(size_t num_threads)
 				task = std::move(tasks.front());
 				tasks.pop();
 
+				active_tasks_amount++;
+
 				lock.unlock(); // unlock BEFORE running the task
 
 				task();
+
+				lock.lock();
+				active_tasks_amount--;
+
+				if (active_tasks_amount == 0 && tasks.empty()) {
+					active_condition_variable.notify_all();
+				}
+				lock.unlock();
 			}
 		});
 	}
@@ -38,7 +48,8 @@ ThreadPool::~ThreadPool()
 	stop = true;
 	lock.unlock();
 
-	condition_variable.notify_all();
+	tasks_condition_variable.notify_all();
+	active_condition_variable.notify_all();
 
 	for (std::thread& t : worker_threads) {
 		t.join();
@@ -48,7 +59,21 @@ ThreadPool::~ThreadPool()
 void ThreadPool::Enqueue(std::function<void()> task)
 {
 	std::unique_lock<std::mutex> lock(tasks_mutex);
+	
+	if (stop) {
+		return;
+	}
+
 	tasks.push(std::move(task));
+	
 	lock.unlock();
-	condition_variable.notify_one();
+	tasks_condition_variable.notify_one();
+}
+
+void ThreadPool::WaitIdle()
+{
+	std::unique_lock<std::mutex> lock(tasks_mutex);
+	active_condition_variable.wait(lock, [this] {
+		return active_tasks_amount == 0 && tasks.empty();
+	});
 }

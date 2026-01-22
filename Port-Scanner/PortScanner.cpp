@@ -41,10 +41,10 @@ std::vector<uint16_t> PortScanner::Scan()
     for (uint16_t start = 1; start <= MAX_PORTS; start += CHUNK) {
         uint16_t end = (std::min)(start + CHUNK - 1, MAX_PORTS);
 
-        pool.Enqueue([&start, &end, &results_mutex, &results, this] {
+        pool.Enqueue([start, end, this, &results, &results_mutex] {
             std::vector<uint16_t> local_results;
 
-            for (uint16_t i = start; i < end; i++) {
+            for (uint16_t i = start; i <= end; i++) {
                 if (CanConnect(i)) {
                     local_results.push_back(i);
                 }
@@ -55,6 +55,8 @@ std::vector<uint16_t> PortScanner::Scan()
             lock.unlock();
         });
     }
+    pool.WaitIdle(); // wait for all tasks to finish!
+    return results;
 }
 
 bool PortScanner::CanConnect(uint16_t port) 
