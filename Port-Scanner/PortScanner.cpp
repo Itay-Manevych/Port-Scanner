@@ -86,6 +86,7 @@ bool PortScanner::CanConnect(uint16_t port)
         return false;
     }
 
+    std::cout << "Connected succefsully to port: " << port << std::endl;
     closesocket(sock);
     return true;
 }

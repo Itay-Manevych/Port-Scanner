@@ -1,5 +1,5 @@
-﻿  PortScanner.cpp
+﻿  main.cpp
+  PortScanner.cpp
   ThreadPool.cpp
-C:\Users\itaym\OneDrive - The College of Management Academic Studies\Learning\Port-Scanner\Port-Scanner\ThreadPool.cpp(80,1): error C2471: cannot update program database 'C:\Users\itaym\OneDrive - The College of Management Academic Studies\Learning\Port-Scanner\Port-Scanner\x64\Debug\vc143.pdb'
   Generating Code...
-C:\Users\itaym\OneDrive - The College of Management Academic Studies\Learning\Port-Scanner\Port-Scanner\PortScanner.cpp : fatal error C1033: cannot open program database 'C:\Users\itaym\OneDrive - The College of Management Academic Studies\Learning\Port-Scanner\Port-Scanner\x64\Debug\vc143.pdb'
+  Port-Scanner.vcxproj -> C:\Users\itaym\OneDrive - The College of Management Academic Studies\Learning\Port-Scanner\x64\Debug\Port-Scanner.exe
