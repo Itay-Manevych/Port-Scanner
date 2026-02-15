@@ -18,10 +18,10 @@ class PortScanner {
 		PortScanner(const std::string& address);
 		
 		void SetAddress(const std::string& address);
-		std::vector<uint16_t> Scan();
+		std::vector<uint32_t> Scan();
 
 	private:
 		std::string address;
 
-		bool CanConnect(uint16_t port);
+		bool CanConnect(uint32_t port);
 };
