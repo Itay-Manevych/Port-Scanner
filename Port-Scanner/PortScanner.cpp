@@ -31,22 +31,24 @@ void PortScanner::SetAddress(const std::string& address)
 	this->address = address;
 }
 
-std::vector<uint32_t> PortScanner::Scan()
+std::vector<uint16_t> PortScanner::Scan()
 {
     InitWsa();
     ThreadPool pool(MAX_THREADS);
     std::mutex results_mutex;
-    std::vector<uint32_t> results;
+    std::vector<uint16_t> results;
 
     for (uint32_t start = 1; start <= MAX_PORTS; start += CHUNK) {
-        uint32_t end = (std::min)(start + CHUNK - 1, MAX_PORTS);
+        uint32_t end = start + CHUNK - 1;
+        if (end > MAX_PORTS) end = MAX_PORTS;
 
         pool.Enqueue([start, end, this, &results, &results_mutex] {
-            std::vector<uint32_t> local_results;
+            std::vector<uint16_t> local_results;
 
             for (uint32_t i = start; i <= end; i++) {
-                if (CanConnect(i)) {
-                    local_results.push_back(i);
+                auto cast_index = static_cast<uint16_t>(i);
+                if (CanConnect(cast_index)) {
+                    local_results.push_back(cast_index);
                 }
             }
 
@@ -59,7 +61,7 @@ std::vector<uint32_t> PortScanner::Scan()
     return results;
 }
 
-bool PortScanner::CanConnect(uint32_t port) 
+bool PortScanner::CanConnect(uint16_t port) 
 {
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == INVALID_SOCKET) {
