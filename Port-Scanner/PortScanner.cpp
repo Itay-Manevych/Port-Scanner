@@ -33,6 +33,8 @@ void PortScanner::SetAddress(const std::string& address)
 
 std::vector<uint16_t> PortScanner::Scan()
 {
+    std::cout << "Starting scanning of ports!" << std::endl;
+
     InitWsa();
     ThreadPool pool(MAX_THREADS);
     std::mutex results_mutex;
