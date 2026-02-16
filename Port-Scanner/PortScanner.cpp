@@ -1,4 +1,5 @@
 #include "PortScanner.h"
+#include "ThreadPool.h"
 #include <iostream>
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -30,15 +31,36 @@ void PortScanner::SetAddress(const std::string& address)
 	this->address = address;
 }
 
-void PortScanner::Scan()
+std::vector<uint16_t> PortScanner::Scan()
 {
-    InitWsa();
+    std::cout << "Starting scanning of ports!" << std::endl;
 
-    for (int i = 7990; i < 9250; i++) {
-        if (CanConnect(i)) {
-            std::cout << address << ":" << i << "Is Open!" << std::endl;
-        }
+    InitWsa();
+    ThreadPool pool(MAX_THREADS);
+    std::mutex results_mutex;
+    std::vector<uint16_t> results;
+
+    for (uint32_t start = 1; start <= MAX_PORTS; start += CHUNK) {
+        uint32_t end = start + CHUNK - 1;
+        if (end > MAX_PORTS) end = MAX_PORTS;
+
+        pool.Enqueue([start, end, this, &results, &results_mutex] {
+            std::vector<uint16_t> local_results;
+
+            for (uint32_t i = start; i <= end; i++) {
+                auto cast_index = static_cast<uint16_t>(i);
+                if (CanConnect(cast_index)) {
+                    local_results.push_back(cast_index);
+                }
+            }
+
+            std::unique_lock<std::mutex> lock(results_mutex);
+            results.insert(results.end(), local_results.begin(), local_results.end());
+            lock.unlock();
+        });
     }
+    pool.WaitIdle(); // wait for all tasks to finish!
+    return results;
 }
 
 bool PortScanner::CanConnect(uint16_t port) 
@@ -68,6 +90,7 @@ bool PortScanner::CanConnect(uint16_t port)
         return false;
     }
 
+    std::cout << "Connected succefsully to port: " << port << std::endl;
     closesocket(sock);
     return true;
 }
